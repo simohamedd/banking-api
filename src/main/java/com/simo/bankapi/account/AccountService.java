@@ -32,6 +32,13 @@ public class AccountService {
     }
 
     @Transactional(readOnly = true)
+    public List<Account> list(String owner) {
+        return owner == null || owner.isBlank()
+                ? accounts.findAllByOrderByOpenedAtAsc()
+                : accounts.findByOwnerIgnoreCaseOrderByOpenedAtAsc(owner.trim());
+    }
+
+    @Transactional(readOnly = true)
     public Account get(String number) {
         return accounts.findByNumber(number).orElseThrow(() -> new AccountNotFoundException(number));
     }
