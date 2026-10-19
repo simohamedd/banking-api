@@ -14,9 +14,9 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
 
     boolean existsByNumber(String number);
 
-    List<Account> findByOwnerIgnoreCaseOrderByOpenedAtAsc(String owner);
+    List<Account> findByOwnerIgnoreCaseOrderByOpenedAtAscIdAsc(String owner);
 
-    List<Account> findAllByOrderByOpenedAtAsc();
+    List<Account> findAllByOrderByOpenedAtAscIdAsc();
 
     /** Locks the row so two transfers can't spend the same money at once. */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
