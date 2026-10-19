@@ -122,4 +122,17 @@ class BankingApiTest {
         mvc.perform(get("/api/accounts/99999999")).andExpect(status().isNotFound());
         mvc.perform(get("/api/accounts/99999999/transactions")).andExpect(status().isNotFound());
     }
+
+    @Test
+    void listsAccountsOptionallyForOneOwner() throws Exception {
+        open("Amina", "CURRENT", "0");
+        open("Amina", "SAVINGS", "0");
+        open("Sara", "CURRENT", "0");
+        mvc.perform(get("/api/accounts")).andExpect(status().isOk()).andExpect(jsonPath("$", hasSize(3)));
+        mvc.perform(get("/api/accounts").param("owner", "amina"))
+                .andExpect(jsonPath("$", hasSize(2)))
+                .andExpect(jsonPath("$[0].type").value("CURRENT"))
+                .andExpect(jsonPath("$[1].type").value("SAVINGS"));
+        mvc.perform(get("/api/accounts").param("owner", "Nobody")).andExpect(jsonPath("$", hasSize(0)));
+    }
 }

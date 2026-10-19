@@ -23,6 +23,7 @@ The API starts on http://localhost:8080. The H2 console is at `/h2-console` (JDB
 | Method | Path | Description |
 |---|---|---|
 | POST | `/api/accounts` | Open an account: `{"owner":"Amina","type":"CURRENT","overdraftLimit":100}` |
+| GET | `/api/accounts?owner=Amina` | List accounts, oldest first, optionally for one owner |
 | GET | `/api/accounts/{number}` | Balance, overdraft and available funds |
 | POST | `/api/accounts/{number}/deposits` | `{"amount":250,"reference":"Salary"}` |
 | POST | `/api/accounts/{number}/withdrawals` | `{"amount":40}` |

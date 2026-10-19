@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -31,6 +32,11 @@ public class AccountController {
     public ResponseEntity<AccountResponse> open(@Valid @RequestBody OpenAccountRequest req) {
         var a = service.open(req.owner(), req.type(), req.overdraftLimit());
         return ResponseEntity.created(URI.create("/api/accounts/" + a.getNumber())).body(AccountResponse.from(a));
+    }
+
+    @GetMapping("/accounts")
+    public List<AccountResponse> list(@RequestParam(required = false) String owner) {
+        return service.list(owner).stream().map(AccountResponse::from).toList();
     }
 
     @GetMapping("/accounts/{number}")
