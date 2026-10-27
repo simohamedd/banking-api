@@ -9,6 +9,7 @@ import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.time.Instant;
 
@@ -16,22 +17,31 @@ public final class Dtos {
     private Dtos() {
     }
 
+    /** Longest owner name accepted. */
+    public static final int MAX_OWNER = 100;
+
+    /**
+     * Longest reference accepted. Transfers append " to 12345678" or " from 12345678",
+     * so this leaves room for that suffix inside the 255-character ledger column.
+     */
+    public static final int MAX_REFERENCE = 140;
+
     public record OpenAccountRequest(
-            @NotBlank String owner,
+            @NotBlank @Size(max = MAX_OWNER) String owner,
             @NotNull AccountType type,
             @DecimalMin("0.00") @Digits(integer = 10, fraction = 2) BigDecimal overdraftLimit) {
     }
 
     public record MoneyRequest(
             @NotNull @DecimalMin("0.01") @Digits(integer = 10, fraction = 2) BigDecimal amount,
-            String reference) {
+            @Size(max = MAX_REFERENCE) String reference) {
     }
 
     public record TransferRequest(
             @NotNull @Pattern(regexp = "\\d{8}") String from,
             @NotNull @Pattern(regexp = "\\d{8}") String to,
             @NotNull @DecimalMin("0.01") @Digits(integer = 10, fraction = 2) BigDecimal amount,
-            String reference) {
+            @Size(max = MAX_REFERENCE) String reference) {
     }
 
     public record AccountResponse(String number, String owner, AccountType type, BigDecimal balance,

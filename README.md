@@ -11,6 +11,7 @@ Spring Boot 3, Spring Web, Spring Data JPA, Bean Validation, H2 in-memory databa
 - **Ledger:** each deposit, withdrawal or transfer adds a `LedgerEntry` with the balance after it
 - **Concurrency:** accounts are row-locked during a movement, always in account-number order, so two simultaneous transfers can't overspend or deadlock
 - **Rules:** current accounts can have an overdraft; savings accounts can't
+- **Limits:** owner names are at most 100 characters and references at most 140; references are trimmed and a blank one is stored as none
 - **Errors:** `400` with a `fields` map for invalid input, `404` for unknown accounts, `422` for insufficient funds
 
 ## Run

@@ -47,7 +47,7 @@ public class AccountService {
     public Account deposit(String number, BigDecimal amount, String reference) {
         Account a = lock(number);
         a.credit(amount);
-        ledger.save(new LedgerEntry(a, EntryType.DEPOSIT, amount, reference));
+        ledger.save(new LedgerEntry(a, EntryType.DEPOSIT, amount, clean(reference)));
         return a;
     }
 
@@ -55,7 +55,7 @@ public class AccountService {
     public Account withdraw(String number, BigDecimal amount, String reference) {
         Account a = lock(number);
         a.debit(amount);
-        ledger.save(new LedgerEntry(a, EntryType.WITHDRAWAL, amount, reference));
+        ledger.save(new LedgerEntry(a, EntryType.WITHDRAWAL, amount, clean(reference)));
         return a;
     }
 
@@ -76,7 +76,8 @@ public class AccountService {
 
         source.debit(amount);
         target.credit(amount);
-        String ref = reference == null || reference.isBlank() ? "Transfer" : reference.trim();
+        String cleaned = clean(reference);
+        String ref = cleaned == null ? "Transfer" : cleaned;
         ledger.save(new LedgerEntry(source, EntryType.TRANSFER_OUT, amount, ref + " to " + to));
         ledger.save(new LedgerEntry(target, EntryType.TRANSFER_IN, amount, ref + " from " + from));
     }
@@ -89,5 +90,10 @@ public class AccountService {
 
     private Account lock(String number) {
         return accounts.findForUpdate(number).orElseThrow(() -> new AccountNotFoundException(number));
+    }
+
+    /** Trims a reference and treats a blank one as no reference at all. */
+    private static String clean(String reference) {
+        return reference == null || reference.isBlank() ? null : reference.trim();
     }
 }
