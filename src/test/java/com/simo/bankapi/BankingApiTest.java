@@ -118,6 +118,69 @@ class BankingApiTest {
     }
 
     @Test
+    void overLongOwnerAndReferencesAreRejectedWith400() throws Exception {
+        mvc.perform(post("/api/accounts").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"owner\":\"%s\",\"type\":\"CURRENT\"}".formatted("A".repeat(101))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fields.owner").exists());
+
+        String a = open("Amina", "CURRENT", "0");
+        String b = open("Sara", "CURRENT", "0");
+        deposit(a, "100");
+        String tooLong = "r".repeat(141);
+
+        mvc.perform(post("/api/accounts/{n}/deposits", a).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"amount\":5,\"reference\":\"%s\"}".formatted(tooLong)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fields.reference").exists());
+        mvc.perform(post("/api/accounts/{n}/withdrawals", a).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"amount\":5,\"reference\":\"%s\"}".formatted(tooLong)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fields.reference").exists());
+        mvc.perform(post("/api/transfers").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"from\":\"%s\",\"to\":\"%s\",\"amount\":5,\"reference\":\"%s\"}".formatted(a, b, tooLong)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fields.reference").exists());
+
+        mvc.perform(get("/api/accounts/{n}", a)).andExpect(jsonPath("$.balance").value(100.0));
+        mvc.perform(get("/api/accounts/{n}", b)).andExpect(jsonPath("$.balance").value(0.0));
+    }
+
+    @Test
+    void longestAllowedReferenceFitsOnBothSidesOfATransfer() throws Exception {
+        String a = open("Amina", "CURRENT", "0");
+        String b = open("Sara", "CURRENT", "0");
+        deposit(a, "100");
+        String longest = "r".repeat(140);
+
+        mvc.perform(post("/api/transfers").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"from\":\"%s\",\"to\":\"%s\",\"amount\":25,\"reference\":\"%s\"}".formatted(a, b, longest)))
+                .andExpect(status().isNoContent());
+
+        mvc.perform(get("/api/accounts/{n}/transactions", a))
+                .andExpect(jsonPath("$[0].reference").value(longest + " to " + b));
+        mvc.perform(get("/api/accounts/{n}/transactions", b))
+                .andExpect(jsonPath("$[0].reference").value(longest + " from " + a));
+    }
+
+    @Test
+    void depositAndWithdrawalReferencesAreTrimmed() throws Exception {
+        String n = open("Amina", "CURRENT", "0");
+        mvc.perform(post("/api/accounts/{n}/deposits", n).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"amount\":50,\"reference\":\"  Salary  \"}"))
+                .andExpect(status().isOk());
+        mvc.perform(post("/api/accounts/{n}/withdrawals", n).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"amount\":10,\"reference\":\"   \"}"))
+                .andExpect(status().isOk());
+
+        mvc.perform(get("/api/accounts/{n}/transactions", n))
+                .andExpect(jsonPath("$", hasSize(2)))
+                .andExpect(jsonPath("$[0].type").value("WITHDRAWAL"))
+                .andExpect(jsonPath("$[0].reference").isEmpty())
+                .andExpect(jsonPath("$[1].reference").value("Salary"));
+    }
+
+    @Test
     void unknownAccountIs404() throws Exception {
         mvc.perform(get("/api/accounts/99999999")).andExpect(status().isNotFound());
         mvc.perform(get("/api/accounts/99999999/transactions")).andExpect(status().isNotFound());
