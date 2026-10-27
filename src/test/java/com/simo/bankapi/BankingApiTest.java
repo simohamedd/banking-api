@@ -118,6 +118,31 @@ class BankingApiTest {
     }
 
     @Test
+    void wrongTypedFieldIsNamedInTheError() throws Exception {
+        mvc.perform(post("/api/accounts").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"owner\":\"Sara\",\"type\":\"CHECKING\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.detail").value("Some fields are invalid"))
+                .andExpect(jsonPath("$.fields.type").value("must be one of CURRENT, SAVINGS"));
+
+        String n = open("Sara", "CURRENT", "0");
+        mvc.perform(post("/api/accounts/{n}/deposits", n).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"amount\":\"ten\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fields.amount").value("must be a number"));
+        mvc.perform(get("/api/accounts/{n}", n)).andExpect(jsonPath("$.balance").value(0.0));
+    }
+
+    @Test
+    void malformedJsonKeepsTheGeneralMessage() throws Exception {
+        mvc.perform(post("/api/accounts").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"owner\":\"Sara\","))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.detail").value("The request body isn't valid JSON for this endpoint"))
+                .andExpect(jsonPath("$.fields").doesNotExist());
+    }
+
+    @Test
     void overLongOwnerAndReferencesAreRejectedWith400() throws Exception {
         mvc.perform(post("/api/accounts").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"owner\":\"%s\",\"type\":\"CURRENT\"}".formatted("A".repeat(101))))
