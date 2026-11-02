@@ -29,7 +29,10 @@ The API starts on http://localhost:8080. The H2 console is at `/h2-console` (JDB
 | POST | `/api/accounts/{number}/deposits` | `{"amount":250,"reference":"Salary"}` |
 | POST | `/api/accounts/{number}/withdrawals` | `{"amount":40}` |
 | POST | `/api/transfers` | `{"from":"12345678","to":"87654321","amount":50,"reference":"Rent"}` |
-| GET | `/api/accounts/{number}/transactions` | Statement, newest first |
+| GET | `/api/accounts/{number}/transactions?limit=50&before=120` | Statement, newest first (see below) |
+
+### Paging through a statement
+A statement returns at most `limit` entries (default 50, maximum 200), newest first. To get the next page, pass the `id` of the last entry you received as `before`; only older entries come back. Because entry ids only grow, pages stay consistent even when new transactions arrive in between. An out-of-range or non-numeric `limit` or `before` gets a `400` with the parameter named in `fields`.
 
 ## Test
 ```bash

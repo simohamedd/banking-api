@@ -60,8 +60,23 @@ public class AccountController {
         return ResponseEntity.noContent().build();
     }
 
+    /** Entries returned when the client doesn't pass {@code limit}. */
+    static final int DEFAULT_STATEMENT_LIMIT = 50;
+
+    /** Most entries one statement request can return. */
+    static final int MAX_STATEMENT_LIMIT = 200;
+
     @GetMapping("/accounts/{number}/transactions")
-    public List<EntryResponse> statement(@PathVariable String number) {
-        return service.statement(number).stream().map(EntryResponse::from).toList();
+    public List<EntryResponse> statement(@PathVariable String number,
+                                         @RequestParam(required = false) Long before,
+                                         @RequestParam(required = false) Integer limit) {
+        int size = limit == null ? DEFAULT_STATEMENT_LIMIT : limit;
+        if (size < 1 || size > MAX_STATEMENT_LIMIT) {
+            throw new InvalidParameterException("limit", "must be between 1 and " + MAX_STATEMENT_LIMIT);
+        }
+        if (before != null && before < 1) {
+            throw new InvalidParameterException("before", "must be a positive entry id");
+        }
+        return service.statement(number, before, size).stream().map(EntryResponse::from).toList();
     }
 }

@@ -223,4 +223,83 @@ class BankingApiTest {
                 .andExpect(jsonPath("$[1].type").value("SAVINGS"));
         mvc.perform(get("/api/accounts").param("owner", "Nobody")).andExpect(jsonPath("$", hasSize(0)));
     }
+
+    @Test
+    void statementPagesNewestFirstUsingBefore() throws Exception {
+        String n = open("Amina", "CURRENT", "0");
+        for (int i = 1; i <= 5; i++) {
+            mvc.perform(post("/api/accounts/{n}/deposits", n).contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"amount\":%d,\"reference\":\"Deposit %d\"}".formatted(i, i)))
+                    .andExpect(status().isOk());
+        }
+
+        String first = mvc.perform(get("/api/accounts/{n}/transactions", n).param("limit", "2"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(2)))
+                .andExpect(jsonPath("$[0].reference").value("Deposit 5"))
+                .andExpect(jsonPath("$[1].reference").value("Deposit 4"))
+                .andReturn().getResponse().getContentAsString();
+        Number lastId = JsonPath.read(first, "$[1].id");
+
+        String second = mvc.perform(get("/api/accounts/{n}/transactions", n)
+                        .param("limit", "2").param("before", lastId.toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(2)))
+                .andExpect(jsonPath("$[0].reference").value("Deposit 3"))
+                .andExpect(jsonPath("$[1].reference").value("Deposit 2"))
+                .andReturn().getResponse().getContentAsString();
+        lastId = JsonPath.read(second, "$[1].id");
+
+        mvc.perform(get("/api/accounts/{n}/transactions", n)
+                        .param("limit", "2").param("before", lastId.toString()))
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].reference").value("Deposit 1"));
+
+        mvc.perform(get("/api/accounts/{n}/transactions", n))
+                .andExpect(jsonPath("$", hasSize(5)));
+    }
+
+    @Test
+    void statementPageOnlyContainsThatAccountsEntries() throws Exception {
+        String a = open("Amina", "CURRENT", "0");
+        String b = open("Sara", "CURRENT", "0");
+        deposit(a, "10");
+        deposit(b, "20");
+        String body = mvc.perform(get("/api/accounts/{n}/transactions", b))
+                .andReturn().getResponse().getContentAsString();
+        Number newest = JsonPath.read(body, "$[0].id");
+
+        mvc.perform(get("/api/accounts/{n}/transactions", b).param("before", newest.toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(0)));
+    }
+
+    @Test
+    void statementDefaultsToFiftyEntries() throws Exception {
+        String n = open("Amina", "CURRENT", "0");
+        for (int i = 0; i < 51; i++) {
+            deposit(n, "1");
+        }
+        mvc.perform(get("/api/accounts/{n}/transactions", n))
+                .andExpect(jsonPath("$", hasSize(50)));
+        mvc.perform(get("/api/accounts/{n}/transactions", n).param("limit", "200"))
+                .andExpect(jsonPath("$", hasSize(51)));
+    }
+
+    @Test
+    void invalidStatementParametersAreNamedInA400() throws Exception {
+        String n = open("Amina", "CURRENT", "0");
+        mvc.perform(get("/api/accounts/{n}/transactions", n).param("limit", "0"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fields.limit").value("must be between 1 and 200"));
+        mvc.perform(get("/api/accounts/{n}/transactions", n).param("limit", "201"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fields.limit").exists());
+        mvc.perform(get("/api/accounts/{n}/transactions", n).param("limit", "ten"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fields.limit").value("must be a number"));
+        mvc.perform(get("/api/accounts/{n}/transactions", n).param("before", "0"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fields.before").value("must be a positive entry id"));
+    }
 }
