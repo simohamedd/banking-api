@@ -13,6 +13,7 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 @RestControllerAdvice
 public class ApiErrors {
@@ -46,6 +47,17 @@ public class ApiErrors {
             }
         }
         return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, "The request body isn't valid JSON for this endpoint");
+    }
+
+    @ExceptionHandler(InvalidParameterException.class)
+    ProblemDetail invalidParameter(InvalidParameterException e) {
+        return fieldErrors(Map.of(e.parameter(), e.getMessage()));
+    }
+
+    /** A query parameter or path variable that can't be converted, such as {@code ?limit=ten}. */
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    ProblemDetail mismatchedParameter(MethodArgumentTypeMismatchException e) {
+        return fieldErrors(Map.of(e.getName(), describe(e.getRequiredType())));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

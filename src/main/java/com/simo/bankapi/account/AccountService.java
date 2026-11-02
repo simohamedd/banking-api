@@ -3,6 +3,7 @@ package com.simo.bankapi.account;
 import java.math.BigDecimal;
 import java.security.SecureRandom;
 import java.util.List;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -82,10 +83,18 @@ public class AccountService {
         ledger.save(new LedgerEntry(target, EntryType.TRANSFER_IN, amount, ref + " from " + from));
     }
 
+    /**
+     * One page of a statement, newest first: at most {@code limit} entries, and only those
+     * older than entry {@code before} when it is given. Passing the id of the last entry of
+     * one page as {@code before} fetches the next page, even if new entries arrived meanwhile.
+     */
     @Transactional(readOnly = true)
-    public List<LedgerEntry> statement(String number) {
+    public List<LedgerEntry> statement(String number, Long before, int limit) {
         get(number);
-        return ledger.findByAccountNumberOrderByIdDesc(number);
+        PageRequest page = PageRequest.of(0, limit);
+        return before == null
+                ? ledger.findByAccountNumberOrderByIdDesc(number, page)
+                : ledger.findByAccountNumberAndIdLessThanOrderByIdDesc(number, before, page);
     }
 
     private Account lock(String number) {
