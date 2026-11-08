@@ -61,6 +61,18 @@ public class Account {
         balance = balance.add(amount);
     }
 
+    /**
+     * Sets a new overdraft limit. It can't be lowered below what the account is already
+     * overdrawn by, or the balance would sit outside the limit.
+     */
+    void changeOverdraft(BigDecimal limit) {
+        BigDecimal newLimit = limit.setScale(2);
+        if (balance.add(newLimit).signum() < 0) {
+            throw new OverdraftBelowDebtException(number, balance.negate());
+        }
+        overdraftLimit = newLimit;
+    }
+
     void debit(BigDecimal amount) {
         if (amount.compareTo(available()) > 0) {
             throw new InsufficientFundsException(number, available());

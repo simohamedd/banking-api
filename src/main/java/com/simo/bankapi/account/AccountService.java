@@ -59,6 +59,16 @@ public class AccountService {
         return a;
     }
 
+    @Transactional
+    public Account changeOverdraft(String number, BigDecimal limit) {
+        Account a = lock(number);
+        if (a.getType() == AccountType.SAVINGS && limit.signum() != 0) {
+            throw new IllegalArgumentException("Savings accounts can't have an overdraft");
+        }
+        a.changeOverdraft(limit);
+        return a;
+    }
+
     /**
      * Moves money in one database transaction. Accounts are always locked in the same order
      * (by number) so two opposite transfers can't deadlock.

@@ -5,6 +5,7 @@ import com.simo.bankapi.web.Dtos.AccountResponse;
 import com.simo.bankapi.web.Dtos.EntryResponse;
 import com.simo.bankapi.web.Dtos.MoneyRequest;
 import com.simo.bankapi.web.Dtos.OpenAccountRequest;
+import com.simo.bankapi.web.Dtos.OverdraftRequest;
 import com.simo.bankapi.web.Dtos.TransferRequest;
 import jakarta.validation.Valid;
 import java.net.URI;
@@ -13,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -42,6 +44,11 @@ public class AccountController {
     @GetMapping("/accounts/{number}")
     public AccountResponse get(@PathVariable String number) {
         return AccountResponse.from(service.get(number));
+    }
+
+    @PutMapping("/accounts/{number}/overdraft")
+    public AccountResponse changeOverdraft(@PathVariable String number, @Valid @RequestBody OverdraftRequest req) {
+        return AccountResponse.from(service.changeOverdraft(number, req.overdraftLimit()));
     }
 
     @PostMapping("/accounts/{number}/deposits")

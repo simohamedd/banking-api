@@ -32,6 +32,10 @@ public final class Dtos {
             @DecimalMin("0.00") @Digits(integer = 10, fraction = 2) BigDecimal overdraftLimit) {
     }
 
+    public record OverdraftRequest(
+            @NotNull @DecimalMin("0.00") @Digits(integer = 10, fraction = 2) BigDecimal overdraftLimit) {
+    }
+
     public record MoneyRequest(
             @NotNull @DecimalMin("0.01") @Digits(integer = 10, fraction = 2) BigDecimal amount,
             @Size(max = MAX_REFERENCE) String reference) {
