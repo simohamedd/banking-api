@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import com.simo.bankapi.account.AccountNotFoundException;
 import com.simo.bankapi.account.InsufficientFundsException;
+import com.simo.bankapi.account.OverdraftBelowDebtException;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -24,6 +25,11 @@ public class ApiErrors {
 
     @ExceptionHandler(InsufficientFundsException.class)
     ProblemDetail insufficient(InsufficientFundsException e) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.UNPROCESSABLE_ENTITY, e.getMessage());
+    }
+
+    @ExceptionHandler(OverdraftBelowDebtException.class)
+    ProblemDetail overdraftBelowDebt(OverdraftBelowDebtException e) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.UNPROCESSABLE_ENTITY, e.getMessage());
     }
 
